@@ -38,9 +38,6 @@ public class Event {
     }
 
     public void decreaseSeat() {
-        if (remainingSeats <= 0) {
-            throw new IllegalStateException("남은 좌석이 없습니다.");
-        }
         remainingSeats--;
     }
 }
