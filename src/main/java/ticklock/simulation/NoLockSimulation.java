@@ -13,7 +13,7 @@ public class NoLockSimulation {
 
     public void run() {
         int totalSeats = 100;
-        int threadCount = 100; // 동시에 100명이 한 장씩 예매를 시도
+        int threadCount = 500; // 동시에 500명이 한 장씩 예매를 시도
         Event event = new Event(1L, "no-lock 시뮬레이션 공연", totalSeats);
 
         CountDownLatch ready = new CountDownLatch(threadCount);
