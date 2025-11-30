@@ -66,30 +66,36 @@ public class NoLockSimulation {
         
         // 동시성 문제 검증
         long oversoldTickets = successCount - totalSeats;
-        if (oversoldTickets > 0) {
-            System.out.println("초과 판매 발생");
-            System.out.println("실제 좌석: " + totalSeats + "석");
-            System.out.println("판매된 티켓: " + successCount + "장");
-            System.out.println("초과 판매량: " + oversoldTickets + "장");
+        int actualDecreaseCount = totalSeats - finalRemainingSeats;  // 실제로 감소한 횟수
+        int missedDecreaseCount = (int) successCount - actualDecreaseCount;  // 누락된 감소 연산
+        
+        boolean hasRaceCondition1 = oversoldTickets > 0;  // 경쟁 조건 #1
+        boolean hasRaceCondition2 = missedDecreaseCount > 0;  // 경쟁 조건 #2
+        
+        if (hasRaceCondition1 || hasRaceCondition2) {
+            System.out.println("Race Condition 발생\n");
+        }
+        
+        if (hasRaceCondition1) {
+            System.out.println("[경쟁 조건 #1] 재고 체크 단계에서 동시성 문제 발생");
+            System.out.println();
+            System.out.println("   실제 좌석: " + totalSeats + "석");
+            System.out.println("   판매 성공: " + successCount + "명");
+            System.out.println("   초과 판매: " + oversoldTickets + "명(문제)");
             System.out.println();
         }
         
-        if (finalRemainingSeats < 0) {
-            System.out.println("재고가 없는데도 물건이 팔렸음");
-            System.out.println("최종 재고: " + finalRemainingSeats);
+        if (hasRaceCondition2) {
+            System.out.println("[경쟁 조건 #2] 재고 감소 단계에서 동시성 문제 발생");
+            System.out.println();
+            System.out.println("   구매 성공 횟수: " + successCount + "회");
+            System.out.println("   실제 감소 횟수: " + actualDecreaseCount + "회");
+            System.out.println("   누락된 감소: " + missedDecreaseCount + "회(문제)");
+            System.out.println("   최종 재고: " + finalRemainingSeats + "석 (예상: " + expectedRemainingSeats + "석)");
             System.out.println();
         }
         
-        int dataInconsistency = Math.abs(finalRemainingSeats - expectedRemainingSeats);
-        if (dataInconsistency > 0) {
-            System.out.println("데이터 불일치 발생");
-            System.out.println("불일치량: " + dataInconsistency + "석");
-            System.out.println();
-        }
-        
-        if (oversoldTickets > 0 || finalRemainingSeats < 0 || dataInconsistency > 0) {
-            System.out.println("Race Condition으로 인한 동시성 제어 실패");
-        } else {
+        if (!hasRaceCondition1 && !hasRaceCondition2) {
             System.out.println("이번 실행에서는 문제가 발생하지 않았습니다.");
         }
     }
