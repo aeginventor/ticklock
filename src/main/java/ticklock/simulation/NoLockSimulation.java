@@ -78,20 +78,18 @@ public class NoLockSimulation {
         
         if (hasRaceCondition1) {
             System.out.println("[경쟁 조건 #1] 재고 체크 단계에서 동시성 문제 발생");
-            System.out.println();
-            System.out.println("   실제 좌석: " + totalSeats + "석");
-            System.out.println("   판매 성공: " + successCount + "명");
-            System.out.println("   초과 판매: " + oversoldTickets + "명(문제)");
+            System.out.println("    실제 좌석: " + totalSeats + "석");
+            System.out.println("    판매 성공: " + successCount + "명");
+            System.out.println("    초과 판매: " + oversoldTickets + "명(문제)");
             System.out.println();
         }
         
         if (hasRaceCondition2) {
             System.out.println("[경쟁 조건 #2] 재고 감소 단계에서 동시성 문제 발생");
-            System.out.println();
-            System.out.println("   구매 성공 횟수: " + successCount + "회");
-            System.out.println("   실제 감소 횟수: " + actualDecreaseCount + "회");
-            System.out.println("   누락된 감소: " + missedDecreaseCount + "회(문제)");
-            System.out.println("   최종 재고: " + finalRemainingSeats + "석 (예상: " + expectedRemainingSeats + "석)");
+            System.out.println("    구매 성공 횟수: " + successCount + "회");
+            System.out.println("    실제 감소 횟수: " + actualDecreaseCount + "회");
+            System.out.println("    누락된 감소: " + missedDecreaseCount + "회(문제)");
+            System.out.println("    최종 재고: " + finalRemainingSeats + "석 (예상: " + expectedRemainingSeats + "석)");
             System.out.println();
         }
         
