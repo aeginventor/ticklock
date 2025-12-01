@@ -2,6 +2,7 @@ package ticklock;
 
 import ticklock.simulation.NoLockSimulation;
 import ticklock.simulation.SynchronizedSimulation;
+import ticklock.simulation.ReentrantLockSimulation;
 
 public class Main {
     public static void main(String[] args) {
@@ -10,12 +11,14 @@ public class Main {
         System.out.println();
 
         System.out.println("=== No-Lock 시뮬레이션 시작 ===");
-        NoLockSimulation noLockSimulation = new NoLockSimulation();
-        noLockSimulation.run();
+        new NoLockSimulation().run();
 
         System.out.println();
         System.out.println("=== synchronized 시뮬레이션 시작 ===");
-        SynchronizedSimulation synchronizedSimulation = new SynchronizedSimulation();
-        synchronizedSimulation.run();
+        new SynchronizedSimulation().run();
+
+        System.out.println();
+        System.out.println("=== ReentrantLock 시뮬레이션 시작 ===");
+        new ReentrantLockSimulation().run();
     }
 }
