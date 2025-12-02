@@ -9,7 +9,7 @@
 
 ---
 
-## Roadmap
+## 로드맵
 
 이 프로젝트는 다음과 같은 단계로 발전할 예정입니다.
 
@@ -30,7 +30,113 @@
 
 ---
 
-## Current Status
+## 진행도
 
-- Gradle + Java 21 기반 초기 프로젝트 셋업
-- `Event` 도메인 클래스를 만들고, 순수 Java 환경에서 동시성 실험을 준비 중입니다.
+### ✅ Step 1 – Pure Java (완료)
+
+순수 Java 환경에서 4가지 동시성 제어 방식을 구현하고 비교 실험을 완료했습니다.
+
+#### 구현된 동시성 제어 방식
+
+1. **No-Lock (문제 상황 재현)**
+   - 동시성 제어를 하지 않은 상태
+   - 2가지 Race Condition 발생
+     - 경쟁 조건 #1: 재고 체크 단계 (Check-Then-Act 패턴)
+     - 경쟁 조건 #2: 재고 감소 단계 (Read-Modify-Write 패턴)
+   - 초과 판매, 음수 재고, 데이터 불일치 발생
+
+2. **synchronized**
+   - Java 키워드 수준의 동기화
+   - 블록을 벗어나면 자동 unlock
+   - 가장 간단하고 직관적
+   - 실무에서 가장 많이 사용되는 방식
+   - JVM 수준 최적화 지원
+
+3. **ReentrantLock**
+   - `java.util.concurrent.locks.ReentrantLock` 사용
+   - 명시적으로 lock()/unlock() 호출 필요
+   - tryLock(), timeout, 공정성(fairness) 등 고급 기능 제공
+   - synchronized로 해결 안 되는 복잡한 시나리오에 사용
+   - finally 블록에서 unlock 필수
+
+4. **AtomicInteger**
+   - `java.util.concurrent.atomic.AtomicInteger` 사용
+   - CAS(Compare-And-Swap) 연산으로 원자성 보장
+   - 락 없이 동시성 제어 (Lock-Free 알고리즘)
+   - 데드락 위험 없음, 높은 성능
+   - 단순한 숫자 연산에 적합
+
+#### 프로젝트 구조
+
+```
+src/main/java/ticklock/
+├── domain/
+│   └── Event.java                             # 이벤트 도메인 모델
+├── service/
+│   ├── TicketPurchaseService.java             # 공통 인터페이스
+│   ├── NoLockTicketPurchaseService.java       # 1. 문제 상황
+│   ├── SynchronizedTicketPurchaseService.java # 2. 기본
+│   ├── ReentrantLockTicketPurchaseService.java# 3. 중급
+│   └── AtomicTicketPurchaseService.java       # 4. 고급
+├── simulation/
+│   ├── NoLockSimulation.java
+│   ├── SynchronizedSimulation.java
+│   ├── ReentrantLockSimulation.java
+│   └── AtomicSimulation.java
+└── Main.java                                  # 모든 시뮬레이션 실행
+
+src/test/java/ticklock/
+└── service/
+    ├── NoLockTicketPurchaseServiceTest.java
+    ├── SynchronizedTicketPurchaseServiceTest.java
+    ├── ReentrantLockTicketPurchaseServiceTest.java
+    └── AtomicTicketPurchaseServiceTest.java
+```
+
+#### 실행 방법
+
+```bash
+# 모든 시뮬레이션 실행
+./gradlew run
+
+# 테스트 실행
+./gradlew test
+```
+
+#### 실험 결과 요약
+
+| 방식 | 초과 판매 | 데이터 일관성 | 성능 | 복잡도 | 사용 시점 |
+|------|----------|-------------|------|-------|----------|
+| No-Lock | ❌ 발생 | ❌ 불일치 | ⚡ 매우 빠름 | ✅ 간단 | 동시성이 필요없을 때 |
+| synchronized | ✅ 방지 | ✅ 보장 | 🐢 보통 | ✅ 간단 | 대부분의 경우 (기본 선택) |
+| ReentrantLock | ✅ 방지 | ✅ 보장 | 🐢 보통 | ⚠️ 복잡 | timeout, tryLock 필요시 |
+| AtomicInteger | ✅ 방지 | ✅ 보장 | ⚡ 빠름 | ⚠️ 복잡 | 단순 숫자 연산 + 고성능 |
+
+#### 핵심 학습 내용
+
+**동시성 문제 이해**
+- **Race Condition**: 여러 스레드가 공유 자원에 동시 접근할 때 발생하는 문제
+- **원자성(Atomicity)**: 연산이 중간에 끼어들 수 없이 완전히 실행되어야 함
+- **Check-Then-Act**: 체크와 실행 사이에 다른 스레드가 끼어들 수 있음
+- **Read-Modify-Write**: 읽기-수정-쓰기가 원자적이지 않으면 데이터 손실 발생
+
+**동시성 제어 전략**
+- **synchronized**: 가장 기본적이고 실용적인 해결책
+- **ReentrantLock**: synchronized의 한계를 극복하는 고급 락
+- **Lock-Free (CAS)**: 락 없이 원자적 연산으로 동시성 제어
+
+**설계 원칙**
+- 간단한 경우 synchronized로 시작
+- 복잡한 요구사항이 있을 때만 ReentrantLock 고려
+- 단순 숫자 연산은 Atomic 클래스 사용
+- 성능보다 정확성이 우선
+
+---
+
+### 다음 단계
+
+**Step 2 – Java + Spring Boot**로 진행 예정:
+- 웹 API 형태로 확장
+- JPA 비관적 락 / 낙관적 락
+- Redis + Redisson 분산 락
+- 데이터베이스 락 타임아웃, 데드락 처리
