@@ -4,10 +4,11 @@ import ticklock.domain.Event;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ReentrantLockTicketPurchaseService {
+public class ReentrantLockTicketPurchaseService implements TicketPurchaseService {
 
     private final ReentrantLock lock = new ReentrantLock();
 
+    @Override
     public boolean purchase(Event event) {
         lock.lock();
         try {

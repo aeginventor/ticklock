@@ -2,8 +2,9 @@ package ticklock.service;
 
 import ticklock.domain.Event;
 
-public class SynchronizedTicketPurchaseService {
+public class SynchronizedTicketPurchaseService implements TicketPurchaseService {
 
+    @Override
     public boolean purchase(Event event) {
         synchronized (event) {
             if (!event.hasRemainingSeats()) {
