@@ -71,19 +71,19 @@
 ```
 src/main/java/ticklock/
 ├── domain/
-│   └── Event.java                             # 이벤트 도메인 모델
+│   └── Event.java                              # 이벤트 도메인 모델
 ├── service/
-│   ├── TicketPurchaseService.java             # 공통 인터페이스
-│   ├── NoLockTicketPurchaseService.java       # 1. 문제 상황
-│   ├── SynchronizedTicketPurchaseService.java # 2. 기본
-│   ├── ReentrantLockTicketPurchaseService.java# 3. 중급
-│   └── AtomicTicketPurchaseService.java       # 4. 고급
+│   ├── TicketPurchaseService.java              # 공통 인터페이스
+│   ├── NoLockTicketPurchaseService.java        # 문제 상황
+│   ├── SynchronizedTicketPurchaseService.java  # 동시성 제어 전략 1
+│   ├── ReentrantLockTicketPurchaseService.java # 동시성 제어 전략 2
+│   └── AtomicTicketPurchaseService.java        # 동시성 제어 전략 3
 ├── simulation/
 │   ├── NoLockSimulation.java
 │   ├── SynchronizedSimulation.java
 │   ├── ReentrantLockSimulation.java
 │   └── AtomicSimulation.java
-└── Main.java                                  # 모든 시뮬레이션 실행
+└── Main.java                                   # 모든 시뮬레이션 실행
 
 src/test/java/ticklock/
 └── service/
@@ -133,10 +133,98 @@ src/test/java/ticklock/
 
 ---
 
-### 다음 단계
+### Step 2 – Java + Spring Boot (계획)
 
-**Step 2 – Java + Spring Boot**로 진행 예정:
-- 웹 API 형태로 확장
-- JPA 비관적 락 / 낙관적 락
-- Redis + Redisson 분산 락
-- 데이터베이스 락 타임아웃, 데드락 처리
+웹 API 형태의 온라인 티켓팅 서비스로 확장하여, 실무 환경에서의 동시성 제어를 실험합니다.
+
+#### Step 2-1: 단일 서버 + DB 락
+
+**목표**: 데이터베이스 레벨 동시성 제어 이해
+
+| 구현 | 설명 |
+|------|------|
+| No-Lock | 동시성 제어 없이 문제 상황 재현 |
+| 비관적 락 | `@Lock(PESSIMISTIC_WRITE)` - SELECT FOR UPDATE |
+| 낙관적 락 | `@Version` + 재시도 로직 |
+
+**기술 스택**: Spring Boot, JPA, H2/PostgreSQL
+
+#### Step 2-2: 복잡한 도메인
+
+**목표**: 실무에서 발생하는 동시성 문제 경험
+
+**도메인 확장**:
+```
+Event (공연)
+├── TicketType (티켓 종류)
+│   ├── VIP석 (50석, 150,000원)
+│   ├── R석 (100석, 100,000원)
+│   └── S석 (200석, 70,000원)
+└── Seat (좌석) - 선택 예매용
+```
+
+**시나리오**:
+- 동일 좌석 동시 예매
+- 데드락 재현 및 해결
+- 락 타임아웃 처리
+- 트랜잭션 격리 수준 비교
+
+#### Step 2-3: 분산 환경
+
+**목표**: 여러 서버에서 동시 요청 시 동시성 제어
+
+**아키텍처**:
+```
+                    ┌─────────────────┐
+                    │  Load Balancer  │
+                    │     (Nginx)     │
+                    └────────┬────────┘
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+     ┌────────────┐   ┌────────────┐   ┌────────────┐
+     │  Server 1  │   │  Server 2  │   │  Server 3  │
+     │  (Spring)  │   │  (Spring)  │   │  (Spring)  │
+     └─────┬──────┘   └─────┬──────┘   └─────┬──────┘
+           │                │                │
+           └────────────────┼────────────────┘
+                            ▼
+                ┌───────────────────────┐
+                │      PostgreSQL       │
+                └───────────────────────┘
+                            │
+                ┌───────────────────────┐
+                │   Redis (분산 락)      │
+                └───────────────────────┘
+```
+
+**비교 실험**:
+
+| 방식 | 단일 서버 | 분산 환경 (3대) | 비고 |
+|------|:--------:|:--------------:|------|
+| synchronized | ✅ | ❌ | JVM 내부에서만 동작 |
+| DB 비관적 락 | ✅ | ✅ | DB가 보장, 느림 |
+| DB 낙관적 락 | ✅ | ✅ | 충돌 시 재시도 필요 |
+| Redis 분산 락 | ✅ | ✅ | 빠름, 권장 |
+
+**기술 스택**: Docker Compose, Redis, Redisson, k6 (부하 테스트)
+
+#### Step 2 핵심 학습 목표
+
+**"왜 분산 락이 필요한가?"를 단계적으로 증명**:
+
+```
+1. synchronized로 단일 서버에서 해결됨
+              ↓
+2. 서버를 3대로 늘리면 synchronized 실패
+              ↓
+3. DB 락으로 해결되지만 성능 저하
+              ↓
+4. Redis 분산 락으로 빠르고 안전하게 해결
+```
+
+**학습 내용**:
+- JPA 락 메커니즘 (비관적/낙관적)
+- 데드락 발생 조건과 해결 방법
+- 분산 환경에서 로컬 락의 한계
+- Redis 분산 락 (Redisson) 동작 원리
+- 부하 테스트 및 성능 측정
