@@ -1,7 +1,9 @@
 package ticklock.service;
 
+import org.springframework.stereotype.Service;
 import ticklock.domain.Event;
 
+@Service
 public class SynchronizedTicketPurchaseService implements TicketPurchaseService {
 
     @Override
