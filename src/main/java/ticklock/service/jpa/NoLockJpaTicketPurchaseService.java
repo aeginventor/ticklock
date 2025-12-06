@@ -5,9 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ticklock.entity.EventEntity;
 import ticklock.repository.EventRepository;
 
-/**
- * 락 없이 티켓을 구매하는 서비스 (문제 상황 재현용)
- */
 @Service
 public class NoLockJpaTicketPurchaseService implements JpaTicketPurchaseService {
 
@@ -27,10 +24,8 @@ public class NoLockJpaTicketPurchaseService implements JpaTicketPurchaseService 
             return false;
         }
 
-        // Race Condition 발생 가능 구간
-        // 여러 트랜잭션이 동시에 여기까지 도달할 수 있음
         try {
-            Thread.sleep(0, 100); // 문제 상황 재현을 위한 지연
+            Thread.sleep(0, 100);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
