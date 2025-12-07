@@ -64,7 +64,6 @@ class DeadlockTest {
         AtomicInteger failureCount = new AtomicInteger(0);
         List<String> errors = Collections.synchronizedList(new ArrayList<>());
 
-        // 절반은 VIP → R석 순서, 절반은 R석 → VIP 순서로 요청
         for (int i = 0; i < threadCount; i++) {
             final int index = i;
             executor.submit(() -> {
@@ -108,5 +107,62 @@ class DeadlockTest {
         if (!completed || !errors.isEmpty()) {
             System.out.println("데드락 또는 락 타임아웃 발생");
         }
+    }
+
+    @Test
+    @DisplayName("데드락 방지: 락 순서를 ID 오름차순으로 통일")
+    void deadlockFree_noDeadlock() throws InterruptedException {
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        List<String> errors = Collections.synchronizedList(new ArrayList<>());
+
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    boolean success;
+                    if (index % 2 == 0) {
+                        success = deadlockFreeService.purchaseSafely(vipId, rSeatId);
+                    } else {
+                        success = deadlockFreeService.purchaseSafely(rSeatId, vipId);
+                    }
+                    if (success) {
+                        successCount.incrementAndGet();
+                    } else {
+                        failureCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    errors.add(e.getClass().getSimpleName() + ": " + e.getMessage());
+                    failureCount.incrementAndGet();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        boolean completed = doneLatch.await(30, TimeUnit.SECONDS);
+
+        executor.shutdown();
+
+        System.out.println("\n=== 데드락 방지 테스트 결과 ===");
+        System.out.println("스레드 수: " + threadCount);
+        System.out.println("성공: " + successCount.get());
+        System.out.println("실패: " + failureCount.get());
+        System.out.println("타임아웃 내 완료: " + completed);
+        if (!errors.isEmpty()) {
+            System.out.println("발생한 예외:");
+            errors.forEach(e -> System.out.println("  - " + e));
+        }
+
+        assertThat(completed).isTrue();
+        assertThat(errors).isEmpty();
+        System.out.println("데드락 없이 모든 요청 처리 완료");
     }
 }
