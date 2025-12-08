@@ -1,0 +1,21 @@
+# Gradle 빌드 결과물 (컨테이너 내에서 새로 빌드)
+build/
+.gradle/
+
+# IDE 설정
+.idea/
+*.iml
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# 로컬 환경 파일
+*.log
+*.tmp
+
+# Docker 관련
+Dockerfile
+docker-compose.yml
+.dockerignore
