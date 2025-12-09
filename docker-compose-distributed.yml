@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: ticklock-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+
+  app1:
+    build: .
+    container_name: ticklock-app1
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ticklock
+      - SPRING_REDIS_HOST=redis
+      - SERVER_PORT=8080
+    depends_on:
+      - postgres
+      - redis
+
+  app2:
+    build: .
+    container_name: ticklock-app2
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ticklock
+      - SPRING_REDIS_HOST=redis
+      - SERVER_PORT=8080
+    depends_on:
+      - postgres
+      - redis
+
+  app3:
+    build: .
+    container_name: ticklock-app3
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ticklock
+      - SPRING_REDIS_HOST=redis
+      - SERVER_PORT=8080
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    container_name: ticklock-postgres
+    environment:
+      POSTGRES_DB: ticklock
+      POSTGRES_USER: ticklock
+      POSTGRES_PASSWORD: ticklock
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: ticklock-redis
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
