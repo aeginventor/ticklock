@@ -6,6 +6,7 @@ import ticklock.controller.dto.EventResponse;
 import ticklock.controller.dto.PurchaseResponse;
 import ticklock.entity.EventEntity;
 import ticklock.repository.EventRepository;
+import ticklock.service.distributed.RedisLockTicketPurchaseService;
 import ticklock.service.jpa.NoLockJpaTicketPurchaseService;
 import ticklock.service.jpa.OptimisticLockJpaTicketPurchaseService;
 import ticklock.service.jpa.PessimisticLockJpaTicketPurchaseService;
@@ -18,16 +19,19 @@ public class JpaEventController {
     private final NoLockJpaTicketPurchaseService noLockService;
     private final PessimisticLockJpaTicketPurchaseService pessimisticLockService;
     private final OptimisticLockJpaTicketPurchaseService optimisticLockService;
+    private final RedisLockTicketPurchaseService redisLockService;
 
     public JpaEventController(
             EventRepository eventRepository,
             NoLockJpaTicketPurchaseService noLockService,
             PessimisticLockJpaTicketPurchaseService pessimisticLockService,
-            OptimisticLockJpaTicketPurchaseService optimisticLockService) {
+            OptimisticLockJpaTicketPurchaseService optimisticLockService,
+            RedisLockTicketPurchaseService redisLockService) {
         this.eventRepository = eventRepository;
         this.noLockService = noLockService;
         this.pessimisticLockService = pessimisticLockService;
         this.optimisticLockService = optimisticLockService;
+        this.redisLockService = redisLockService;
     }
 
     @GetMapping("/{id}")
@@ -68,6 +72,16 @@ public class JpaEventController {
     public ResponseEntity<PurchaseResponse> purchaseOptimistic(@PathVariable Long id) {
         try {
             boolean success = optimisticLockService.purchase(id);
+            return createResponse(id, success);
+        } catch (Exception e) {
+            return ResponseEntity.ok(PurchaseResponse.failure(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/purchase/redis")
+    public ResponseEntity<PurchaseResponse> purchaseRedisLock(@PathVariable Long id) {
+        try {
+            boolean success = redisLockService.purchase(id);
             return createResponse(id, success);
         } catch (Exception e) {
             return ResponseEntity.ok(PurchaseResponse.failure(e.getMessage()));
