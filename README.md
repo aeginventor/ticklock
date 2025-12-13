@@ -1,189 +1,211 @@
 # ticklock
 
-[![language](https://img.shields.io/badge/language-Java%20→%20Kotlin-blue)]()
-[![framework](https://img.shields.io/badge/framework-Gradle-lightgrey)]()
+[![language](https://img.shields.io/badge/language-Kotlin-purple)]()
+[![framework](https://img.shields.io/badge/framework-Spring%20Boot-green)]()
 [![topic](https://img.shields.io/badge/topic-Concurrency%20Control-orange)]()
 [![domain](https://img.shields.io/badge/domain-Online%20Ticketing-informational)]()
 
-온라인 티켓팅 도메인에서 다양한 동시성 제어 기법을 단계적으로 적용·비교·실험하는 프로젝트입니다.
+온라인 티켓팅 도메인에서 다양한 동시성 제어 기법을 **하나의 API에서 비교·실험**하는 프로젝트입니다.
 
 ---
 
-## 로드맵
+## 🎯 핵심 기능
 
-이 프로젝트는 다음과 같은 단계로 발전할 예정입니다.
+6가지 동시성 제어 방식을 **동일한 조건(DB 저장)**으로 비교할 수 있습니다.
 
-1. **Step 1 – Pure Java**
-    - 온라인 티켓팅 도메인 간단히 정의
-    - 여러 스레드가 동시에 예매를 시도하는 상황을 순수 Java로 시뮬레이션
-    - 노락(No Lock), 로컬 락(synchronized, ReentrantLock)부터 실험
-
-2. **Step 2 – Java + Spring Boot**
-    - 웹 API 형태의 온라인 티켓팅 서비스로 확장
-    - JPA 기반 비관적 락 / 낙관적 락(@Version + 재시도)
-    - Redis + Redisson 분산 락
-    - 데이터베이스 락 타임아웃, 데드락 재현 및 처리, 락 대기 시간 모니터링
-
-3. **Step 3 – Kotlin + Spring Boot**
-    - 2단계에서 만든 서비스를 Kotlin으로 마이그레이션
-    - 기존 기능 유지 + Kotlin 문법과 스타일 적용
+| 락 방식 | 엔드포인트 | 단일 서버 | 분산 환경 |
+|--------|-----------|:--------:|:--------:|
+| No-Lock | `/api/events/{id}/purchase/no-lock` | ❌ 실패 | ❌ 실패 |
+| synchronized | `/api/events/{id}/purchase/synchronized` | ✅ 성공 | ❌ 실패 |
+| ReentrantLock | `/api/events/{id}/purchase/reentrant-lock` | ✅ 성공 | ❌ 실패 |
+| DB 비관적 락 | `/api/events/{id}/purchase/pessimistic` | ✅ 성공 | ✅ 성공 |
+| DB 낙관적 락 | `/api/events/{id}/purchase/optimistic` | ✅ 성공 | ✅ 성공 |
+| Redis 분산 락 | `/api/events/{id}/purchase/redis` | ✅ 성공 | ✅ 성공 |
 
 ---
 
-## 진행도
+## 🚀 빠른 시작
 
-### ✅ Step 1 – Pure Java (완료)
-
-순수 Java 환경에서 4가지 동시성 제어 방식을 구현하고 비교 실험을 완료했습니다.
-
-#### 구현된 동시성 제어 방식
-
-1. **No-Lock (문제 상황 재현)**
-   - 동시성 제어를 하지 않은 상태
-   - 2가지 Race Condition 발생
-     - 경쟁 조건 #1: 재고 체크 단계 (Check-Then-Act 패턴)
-     - 경쟁 조건 #2: 재고 감소 단계 (Read-Modify-Write 패턴)
-   - 초과 판매, 음수 재고, 데이터 불일치 발생
-
-2. **synchronized**
-   - Java 키워드 수준의 동기화
-   - 블록을 벗어나면 자동 unlock
-   - 가장 간단하고 직관적
-   - 실무에서 가장 많이 사용되는 방식
-   - JVM 수준 최적화 지원
-
-3. **ReentrantLock**
-   - `java.util.concurrent.locks.ReentrantLock` 사용
-   - 명시적으로 lock()/unlock() 호출 필요
-   - tryLock(), timeout, 공정성(fairness) 등 고급 기능 제공
-   - synchronized로 해결 안 되는 복잡한 시나리오에 사용
-   - finally 블록에서 unlock 필수
-
-4. **AtomicInteger**
-   - `java.util.concurrent.atomic.AtomicInteger` 사용
-   - CAS(Compare-And-Swap) 연산으로 원자성 보장
-   - 락 없이 동시성 제어 (Lock-Free 알고리즘)
-   - 데드락 위험 없음, 높은 성능
-   - 단순한 숫자 연산에 적합
-
-#### 프로젝트 구조
-
-```
-src/main/java/ticklock/
-├── domain/
-│   └── Event.java                              # 이벤트 도메인 모델
-├── service/
-│   ├── TicketPurchaseService.java              # 공통 인터페이스
-│   ├── NoLockTicketPurchaseService.java        # 문제 상황
-│   ├── SynchronizedTicketPurchaseService.java  # 동시성 제어 전략 1
-│   ├── ReentrantLockTicketPurchaseService.java # 동시성 제어 전략 2
-│   └── AtomicTicketPurchaseService.java        # 동시성 제어 전략 3
-├── simulation/
-│   ├── NoLockSimulation.java
-│   ├── SynchronizedSimulation.java
-│   ├── ReentrantLockSimulation.java
-│   └── AtomicSimulation.java
-└── Main.java                                   # 모든 시뮬레이션 실행
-
-src/test/java/ticklock/
-└── service/
-    ├── NoLockTicketPurchaseServiceTest.java
-    ├── SynchronizedTicketPurchaseServiceTest.java
-    ├── ReentrantLockTicketPurchaseServiceTest.java
-    └── AtomicTicketPurchaseServiceTest.java
-```
-
-#### 실행 방법
+### 1. 단일 서버 (H2 인메모리)
 
 ```bash
-# 모든 시뮬레이션 실행
-./gradlew run
-
-# 테스트 실행
-./gradlew test
+./gradlew bootRun
 ```
 
-#### 실험 결과 요약
+### 2. Docker 환경 (PostgreSQL + Redis)
 
-| 방식 | 초과 판매 | 데이터 일관성 | 성능 | 복잡도 | 사용 시점 |
-|------|----------|-------------|------|-------|----------|
-| No-Lock | ❌ 발생 | ❌ 불일치 | ⚡ 매우 빠름 | ✅ 간단 | 동시성이 필요없을 때 |
-| synchronized | ✅ 방지 | ✅ 보장 | 🐢 보통 | ✅ 간단 | 대부분의 경우 (기본 선택) |
-| ReentrantLock | ✅ 방지 | ✅ 보장 | 🐢 보통 | ⚠️ 복잡 | timeout, tryLock 필요시 |
-| AtomicInteger | ✅ 방지 | ✅ 보장 | ⚡ 빠름 | ⚠️ 복잡 | 단순 숫자 연산 + 고성능 |
+```bash
+docker-compose up -d
+./gradlew bootRun --args='--spring.profiles.active=docker'
+```
 
-#### 핵심 학습 내용
+### 3. 분산 환경 (서버 3대 + Nginx)
 
-**동시성 문제 이해**
-- **Race Condition**: 여러 스레드가 공유 자원에 동시 접근할 때 발생하는 문제
-- **원자성(Atomicity)**: 연산이 중간에 끼어들 수 없이 완전히 실행되어야 함
-- **Check-Then-Act**: 체크와 실행 사이에 다른 스레드가 끼어들 수 있음
-- **Read-Modify-Write**: 읽기-수정-쓰기가 원자적이지 않으면 데이터 손실 발생
-
-**동시성 제어 전략**
-- **synchronized**: 가장 기본적이고 실용적인 해결책
-- **ReentrantLock**: synchronized의 한계를 극복하는 고급 락
-- **Lock-Free (CAS)**: 락 없이 원자적 연산으로 동시성 제어
-
-**설계 원칙**
-- 간단한 경우 synchronized로 시작
-- 복잡한 요구사항이 있을 때만 ReentrantLock 고려
-- 단순 숫자 연산은 Atomic 클래스 사용
-- 성능보다 정확성이 우선
+```bash
+docker-compose -f docker-compose-distributed.yml up -d
+```
 
 ---
 
-### ✅ Step 2 – Java + Spring Boot (완료)
+## 📡 API 엔드포인트
 
-웹 API 형태의 온라인 티켓팅 서비스로 확장하여, 실무 환경에서의 동시성 제어를 실험했습니다.
+| Method | URL | 설명 |
+|--------|-----|------|
+| GET | `/api/events/{id}` | 이벤트 조회 |
+| POST | `/api/events` | 이벤트 생성 |
+| POST | `/api/events/{id}/purchase/no-lock` | 락 없음 (문제 발생) |
+| POST | `/api/events/{id}/purchase/synchronized` | JVM 로컬 락 |
+| POST | `/api/events/{id}/purchase/reentrant-lock` | JVM 로컬 락 |
+| POST | `/api/events/{id}/purchase/pessimistic` | DB 비관적 락 |
+| POST | `/api/events/{id}/purchase/optimistic` | DB 낙관적 락 |
+| POST | `/api/events/{id}/purchase/redis` | Redis 분산 락 |
 
-#### 구현된 동시성 제어 방식
+### 사용 예시
 
-1. **No-Lock (문제 상황 재현)**
-   - JPA로 DB 연동 후 락 없이 구매
-   - Lost Update 문제 발생 확인
+```bash
+# 이벤트 생성 (100석)
+curl -X POST http://localhost:8080/api/events \
+  -H "Content-Type: application/json" \
+  -d '{"name":"콘서트","totalSeats":100}'
 
-2. **비관적 락 (Pessimistic Lock)**
-   - `@Lock(PESSIMISTIC_WRITE)` 사용
-   - SELECT FOR UPDATE로 행 잠금
-   - 다른 트랜잭션은 락 해제까지 대기
+# 티켓 구매 (synchronized)
+curl -X POST http://localhost:8080/api/events/1/purchase/synchronized
 
-3. **낙관적 락 (Optimistic Lock)**
-   - `@Version` 필드로 충돌 감지
-   - 충돌 시 `ObjectOptimisticLockingFailureException` 발생
-   - 최대 10회 재시도 로직 구현
-
-4. **Redis 분산 락**
-   - Redisson의 `RLock` 사용
-   - `tryLock(waitTime, leaseTime)` 방식
-   - 여러 서버에서 동시에 요청해도 하나의 락 공유
-
-#### 도메인 확장
-
-```
-EventEntity (공연)
-└── TicketTypeEntity (티켓 종류)
-    ├── VIP석
-    ├── R석
-    └── S석
+# 이벤트 조회
+curl http://localhost:8080/api/events/1
 ```
 
-#### 데드락 재현 및 해결
+---
 
-**문제 상황 (DeadlockProneService)**
-```
-스레드 A: VIP 락 획득 → R석 락 획득 시도 (대기)
-스레드 B: R석 락 획득 → VIP 락 획득 시도 (대기)
-→ 서로 상대방의 락을 기다리며 무한 대기 (데드락)
+## 🔒 동시성 제어 방식 비교
+
+### 1. No-Lock (문제 상황)
+
+```kotlin
+@Transactional
+fun purchase(eventId: Long): Boolean {
+    val event = eventRepository.findById(eventId).orElseThrow()
+    if (!event.hasRemainingSeats()) return false
+    event.decreaseSeat()  // Race Condition 발생!
+    return true
+}
 ```
 
-**해결 방법 (DeadlockFreeService)**
-```
-모든 스레드: ID가 작은 것부터 락 획득
-→ 락 순서가 통일되어 데드락 발생하지 않음
+- **문제**: 여러 스레드가 동시에 재고 체크 → 초과 판매
+- **용도**: 문제 상황 재현용
+
+### 2. synchronized (JVM 로컬 락)
+
+```kotlin
+synchronized(lock) {
+    val event = eventRepository.findById(eventId).orElseThrow()
+    if (!event.hasRemainingSeats()) return false
+    event.decreaseSeat()
+    return true
+}
 ```
 
-#### 분산 환경 아키텍처
+- **장점**: 구현 간단, 단일 서버에서 확실한 동시성 제어
+- **단점**: 분산 환경에서 동작 안 함 (JVM 내부만 보호)
+
+### 3. ReentrantLock (JVM 로컬 락)
+
+```kotlin
+val lock = locks.computeIfAbsent(eventId) { ReentrantLock() }
+lock.lock()
+try {
+    // 비즈니스 로직
+} finally {
+    lock.unlock()
+}
+```
+
+- **장점**: tryLock, timeout 등 세밀한 제어 가능
+- **단점**: 분산 환경에서 동작 안 함
+
+### 4. DB 비관적 락 (Pessimistic Lock)
+
+```kotlin
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("SELECT e FROM EventEntity e WHERE e.id = :id")
+fun findByIdWithPessimisticLock(id: Long): Optional<EventEntity>
+```
+
+- **동작**: `SELECT ... FOR UPDATE`로 행 잠금
+- **장점**: 분산 환경에서도 동작 (DB가 락 관리)
+- **단점**: 락 대기 시간 발생, 데드락 가능
+
+### 5. DB 낙관적 락 (Optimistic Lock)
+
+```kotlin
+@Entity
+class EventEntity(
+    // ...
+    @Version
+    val version: Long? = null
+)
+```
+
+- **동작**: 업데이트 시 버전 비교, 충돌 시 예외 발생
+- **장점**: 락 대기 없음, 읽기 성능 좋음
+- **단점**: 충돌 시 재시도 로직 필요
+
+### 6. Redis 분산 락
+
+```kotlin
+val lock = redissonClient.getLock("ticket:event:$eventId")
+if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+    try {
+        // 비즈니스 로직
+    } finally {
+        lock.unlock()
+    }
+}
+```
+
+- **장점**: 분산 환경에서 빠른 락 획득, 확장성 좋음
+- **단점**: Redis 의존성 추가, 구현 복잡
+
+---
+
+## 🏗️ 프로젝트 구조
+
+```
+src/main/kotlin/ticklock/
+├── config/
+│   └── RedisConfig.kt                    # Redisson 클라이언트 설정
+├── controller/
+│   ├── dto/
+│   │   ├── EventResponse.kt
+│   │   ├── PurchaseRequest.kt
+│   │   └── PurchaseResponse.kt
+│   ├── HelloController.kt                # 서버 상태 확인
+│   └── UnifiedEventController.kt         # 통합 API (6가지 락 방식)
+├── entity/
+│   ├── EventEntity.kt                    # 이벤트 JPA 엔티티
+│   └── TicketTypeEntity.kt               # 티켓 종류 JPA 엔티티
+├── repository/
+│   ├── EventRepository.kt                # 비관적/낙관적 락 쿼리
+│   └── TicketTypeRepository.kt
+├── service/
+│   ├── unified/                          # 통합 서비스 (6가지 락 방식)
+│   │   ├── UnifiedTicketPurchaseService.kt
+│   │   ├── NoLockUnifiedService.kt
+│   │   ├── SynchronizedUnifiedService.kt
+│   │   ├── ReentrantLockUnifiedService.kt
+│   │   ├── PessimisticLockUnifiedService.kt
+│   │   ├── OptimisticLockUnifiedService.kt
+│   │   ├── OptimisticLockExecutor.kt
+│   │   └── RedisLockUnifiedService.kt
+│   └── deadlock/                         # 데드락 실험
+│       ├── DeadlockProneService.kt
+│       └── DeadlockFreeService.kt
+└── TicklockApplication.kt
+```
+
+---
+
+## 🔬 분산 환경 아키텍처
 
 ```
                     ┌─────────────────┐
@@ -208,95 +230,64 @@ EventEntity (공연)
                     └─────────────────┘
 ```
 
-#### 프로젝트 구조
+**왜 분산 락이 필요한가?**
 
 ```
-src/main/java/ticklock/
-├── config/
-│   └── RedisConfig.java                 # Redisson 클라이언트 설정
-├── controller/
-│   ├── HelloController.java             # 서버 상태 확인용
-│   ├── EventController.java             # 메모리 기반 API
-│   └── JpaEventController.java          # DB 기반 API (모든 락 방식)
-├── entity/
-│   ├── EventEntity.java                 # 이벤트 JPA 엔티티
-│   └── TicketTypeEntity.java            # 티켓 종류 JPA 엔티티
-├── repository/
-│   ├── EventRepository.java             # 비관적/낙관적 락 쿼리
-│   └── TicketTypeRepository.java
-├── service/
-│   ├── jpa/
-│   │   ├── NoLockJpaTicketPurchaseService.java
-│   │   ├── PessimisticLockJpaTicketPurchaseService.java
-│   │   ├── OptimisticLockJpaTicketPurchaseService.java
-│   │   └── OptimisticLockPurchaseExecutor.java
-│   ├── deadlock/
-│   │   ├── DeadlockProneService.java    # 데드락 발생 가능
-│   │   └── DeadlockFreeService.java     # 데드락 방지
-│   └── distributed/
-│       └── RedisLockTicketPurchaseService.java
-└── TicklockApplication.java
+1. synchronized로 단일 서버에서 해결됨
+            ↓
+2. 서버를 3대로 늘리면 synchronized 실패
+            ↓
+3. DB 락으로 해결되지만 성능 저하
+            ↓
+4. Redis 분산 락으로 빠르고 안전하게 해결
 ```
-
-#### 실행 방법
-
-```bash
-# 1. 단일 서버 (H2 인메모리)
-./gradlew bootRun
-
-# 2. Docker 환경 (PostgreSQL + Redis)
-docker-compose up -d
-./gradlew bootRun --args='--spring.profiles.active=docker'
-
-# 3. 분산 환경 (서버 3대 + Nginx)
-docker-compose -f docker-compose-distributed.yml up -d
-```
-
-#### API 엔드포인트
-
-| Method | URL | 설명 |
-|--------|-----|------|
-| GET | `/jpa/events/{id}` | 이벤트 조회 |
-| POST | `/jpa/events` | 이벤트 생성 |
-| POST | `/jpa/events/{id}/purchase/no-lock` | No-Lock 구매 |
-| POST | `/jpa/events/{id}/purchase/pessimistic` | 비관적 락 구매 |
-| POST | `/jpa/events/{id}/purchase/optimistic` | 낙관적 락 구매 |
-| POST | `/jpa/events/{id}/purchase/redis` | Redis 분산 락 구매 |
-
-#### 실험 결과 요약
-
-| 방식 | 단일 서버 | 분산 환경 | 성능 | 복잡도 |
-|------|:--------:|:--------:|:----:|:-----:|
-| No-Lock | ❌ | ❌ | ⚡ 빠름 | ✅ 간단 |
-| 비관적 락 | ✅ | ✅ | 🐢 느림 | ✅ 간단 |
-| 낙관적 락 | ✅ | ✅ | 🐢 보통 | ⚠️ 복잡 |
-| Redis 분산 락 | ✅ | ✅ | ⚡ 빠름 | ⚠️ 복잡 |
-
-#### 핵심 학습 내용
-
-**JPA 락 메커니즘**
-- **비관적 락**: `SELECT ... FOR UPDATE`로 행 잠금. 확실하지만 대기 시간 발생.
-- **낙관적 락**: `@Version` 필드로 충돌 감지. 충돌 시 재시도 필요.
-
-**데드락**
-- **발생 조건**: 여러 자원을 서로 다른 순서로 락 획득 시도
-- **해결 방법**: 락 획득 순서를 통일 (예: ID 오름차순)
-
-**분산 락**
-- **문제**: `synchronized`는 같은 JVM 내에서만 동작
-- **해결**: Redis처럼 모든 서버가 공유하는 외부 저장소에서 락 관리
-- **Redisson**: `tryLock(waitTime, leaseTime)`으로 안전하게 락 획득/해제
-
-**기술 스택**
-- Spring Boot 3.2, Spring Data JPA
-- H2 (개발), PostgreSQL (운영)
-- Redis, Redisson (분산 락)
-- Docker, Docker Compose, Nginx
-- Testcontainers (테스트)
 
 ---
 
-### Step 3 – Kotlin + Spring Boot (예정)
+## 데드락 실험
 
-- Step 2 서비스를 Kotlin으로 마이그레이션
-- 기존 기능 유지 + Kotlin 문법과 스타일 적용
+### 문제 상황 (DeadlockProneService)
+
+```
+스레드 A: VIP 락 획득 → R석 락 획득 시도 (대기)
+스레드 B: R석 락 획득 → VIP 락 획득 시도 (대기)
+→ 서로 상대방의 락을 기다리며 무한 대기 (데드락)
+```
+
+### 해결 방법 (DeadlockFreeService)
+
+```kotlin
+// 항상 ID가 작은 것부터 락 획득
+val firstId = min(ticketTypeId1, ticketTypeId2)
+val secondId = max(ticketTypeId1, ticketTypeId2)
+```
+
+→ 락 순서가 통일되어 데드락 발생하지 않음
+
+---
+
+## 🛠️ 기술 스택
+
+| 분류 | 기술 |
+|------|------|
+| 언어 | Kotlin 1.9 |
+| 프레임워크 | Spring Boot 3.2, Spring Data JPA |
+| 데이터베이스 | H2 (개발), PostgreSQL (운영) |
+| 분산 락 | Redis, Redisson |
+| 인프라 | Docker, Docker Compose, Nginx |
+| 테스트 | JUnit 5, Testcontainers |
+| 빌드 | Gradle (Kotlin DSL) |
+
+---
+
+## 📚 학습 내용
+
+1. **Race Condition 이해**: Check-Then-Act, Read-Modify-Write 패턴
+2. **JVM 로컬 락**: synchronized vs ReentrantLock
+3. **JPA 락**: 비관적 락 vs 낙관적 락
+4. **데드락**: 발생 조건과 해결 방법 (락 순서 통일)
+5. **분산 락**: 로컬 락의 한계와 Redis 분산 락
+6. **Kotlin 마이그레이션**: Java → Kotlin 전환 경험
+
+---
+
