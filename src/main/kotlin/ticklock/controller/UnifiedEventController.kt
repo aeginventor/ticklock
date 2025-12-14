@@ -17,7 +17,7 @@ class UnifiedEventController(
     private val reentrantLockService: ReentrantLockUnifiedService,
     private val pessimisticLockService: PessimisticLockUnifiedService,
     private val optimisticLockService: OptimisticLockUnifiedService,
-    private val redisLockService: RedisLockUnifiedService
+    private val redisLockService: RedisLockUnifiedService? = null
 ) {
 
     @GetMapping("/{id}")
@@ -55,7 +55,8 @@ class UnifiedEventController(
 
     @PostMapping("/{id}/purchase/redis")
     fun purchaseRedis(@PathVariable id: Long): ResponseEntity<PurchaseResponse> =
-        executePurchase(id, redisLockService)
+        redisLockService?.let { executePurchase(id, it) }
+            ?: ResponseEntity.ok(PurchaseResponse.failure("Redis가 비활성화되어 있습니다. spring.redis.enabled=true로 설정하세요."))
 
     private fun executePurchase(
         eventId: Long,

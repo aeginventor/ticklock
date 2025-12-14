@@ -1,12 +1,14 @@
 package ticklock.service.unified
 
 import org.redisson.api.RedissonClient
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ticklock.repository.EventRepository
 import java.util.concurrent.TimeUnit
 
 @Service
+@ConditionalOnBean(RedissonClient::class)
 class RedisLockUnifiedService(
     private val redissonClient: RedissonClient,
     private val eventRepository: EventRepository

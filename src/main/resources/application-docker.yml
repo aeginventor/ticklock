@@ -17,5 +17,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   redis:
+    enabled: true
     host: localhost
     port: 6379
