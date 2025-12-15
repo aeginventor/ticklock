@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticklock - 동시성 제어 실험</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Ticklock</h1>
+        <p class="subtitle">동시성 제어 실험 프로젝트</p>
+
+        <section class="card">
+            <h2>이벤트 생성</h2>
+            <div class="form-row">
+                <input type="text" id="eventName" placeholder="이벤트 이름">
+                <input type="number" id="totalSeats" placeholder="좌석 수" value="100">
+                <button onclick="createEvent()">생성</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>이벤트 목록 <button class="btn-small" onclick="loadEvents()">새로고침</button></h2>
+            <table id="eventsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>이름</th>
+                        <th>총 좌석</th>
+                        <th>잔여석</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody id="eventsBody">
+                    <tr><td colspan="5" class="empty">이벤트가 없습니다</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card">
+            <h2>동시성 테스트</h2>
+            <div class="form-row">
+                <label>
+                    이벤트 ID
+                    <input type="number" id="testEventId" placeholder="ID" value="1">
+                </label>
+                <label>
+                    락 전략
+                    <select id="lockType">
+                        <option value="no-lock">No Lock (문제 발생)</option>
+                        <option value="synchronized">synchronized</option>
+                        <option value="reentrant-lock">ReentrantLock</option>
+                        <option value="pessimistic">Pessimistic Lock</option>
+                        <option value="optimistic">Optimistic Lock</option>
+                        <option value="redis">Redis Lock</option>
+                    </select>
+                </label>
+                <label>
+                    동시 요청
+                    <input type="number" id="concurrentRequests" value="50" min="1" max="200">
+                </label>
+            </div>
+            <button onclick="runConcurrencyTest()" id="testBtn">테스트 실행</button>
+            
+            <div id="testResult" class="result hidden">
+                <div class="result-row">
+                    <span class="label">성공:</span>
+                    <span id="successCount" class="success">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="label">실패:</span>
+                    <span id="failCount" class="fail">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="label">소요시간:</span>
+                    <span id="elapsed">0ms</span>
+                </div>
+                <div class="result-row">
+                    <span class="label">최종 잔여석:</span>
+                    <span id="finalSeats">-</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>락 전략 비교</h2>
+            <table class="info-table">
+                <tr>
+                    <td><span class="badge danger">No Lock</span></td>
+                    <td>락 없음 - 동시성 문제 발생 (초과 판매)</td>
+                </tr>
+                <tr>
+                    <td><span class="badge success">synchronized</span></td>
+                    <td>JVM 로컬 락 - 단일 서버에서만 동작</td>
+                </tr>
+                <tr>
+                    <td><span class="badge success">ReentrantLock</span></td>
+                    <td>JVM 로컬 락 - tryLock, timeout 지원</td>
+                </tr>
+                <tr>
+                    <td><span class="badge primary">Pessimistic</span></td>
+                    <td>DB 비관적 락 - 분산 환경 지원</td>
+                </tr>
+                <tr>
+                    <td><span class="badge primary">Optimistic</span></td>
+                    <td>DB 낙관적 락 - 버전 기반, 재시도 필요</td>
+                </tr>
+                <tr>
+                    <td><span class="badge warning">Redis</span></td>
+                    <td>분산 락 - 여러 서버에서 동시성 제어</td>
+                </tr>
+            </table>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
