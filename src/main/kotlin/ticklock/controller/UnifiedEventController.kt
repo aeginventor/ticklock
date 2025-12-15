@@ -20,6 +20,10 @@ class UnifiedEventController(
     private val redisLockService: RedisLockUnifiedService? = null
 ) {
 
+    @GetMapping
+    fun getAllEvents(): ResponseEntity<List<EventResponse>> =
+        ResponseEntity.ok(eventRepository.findAll().map { it.toResponse() })
+
     @GetMapping("/{id}")
     fun getEvent(@PathVariable id: Long): ResponseEntity<EventResponse> =
         eventRepository.findById(id)
