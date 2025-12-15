@@ -76,3 +76,76 @@ async function createEvent() {
         alert('오류: ' + e.message);
     }
 }
+
+// 동시성 테스트
+async function runConcurrencyTest() {
+    const eventId = document.getElementById('testEventId').value;
+    const lockType = document.getElementById('lockType').value;
+    const count = parseInt(document.getElementById('concurrentRequests').value);
+
+    if (!eventId) {
+        alert('이벤트 ID를 입력하세요');
+        return;
+    }
+
+    const btn = document.getElementById('testBtn');
+    const resultDiv = document.getElementById('testResult');
+
+    btn.disabled = true;
+    btn.textContent = '테스트 중...';
+    resultDiv.classList.remove('hidden');
+
+    document.getElementById('successCount').textContent = '0';
+    document.getElementById('failCount').textContent = '0';
+    document.getElementById('elapsed').textContent = '측정 중...';
+    document.getElementById('finalSeats').textContent = '-';
+
+    const startTime = Date.now();
+    let successCount = 0;
+    let failCount = 0;
+
+    // 동시에 모든 요청 실행
+    const promises = [];
+    for (let i = 0; i < count; i++) {
+        promises.push(
+            fetch(`/api/events/${eventId}/purchase/${lockType}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                    // 실시간 업데이트
+                    document.getElementById('successCount').textContent = successCount;
+                    document.getElementById('failCount').textContent = failCount;
+                })
+                .catch(() => {
+                    failCount++;
+                    document.getElementById('failCount').textContent = failCount;
+                })
+        );
+    }
+
+    await Promise.all(promises);
+
+    const elapsed = Date.now() - startTime;
+    document.getElementById('elapsed').textContent = elapsed + 'ms';
+
+    // 최종 잔여석 조회
+    try {
+        const response = await fetch(`/api/events/${eventId}`);
+        if (response.ok) {
+            const event = await response.json();
+            document.getElementById('finalSeats').textContent = event.remainingSeats;
+
+            // 목록 새로고침
+            loadEvents();
+        }
+    } catch (e) {
+        // 무시
+    }
+
+    btn.disabled = false;
+    btn.textContent = '테스트 실행';
+}
