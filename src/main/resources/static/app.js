@@ -41,3 +41,38 @@ async function loadEvents() {
         tbody.innerHTML = '<tr><td colspan="5" class="empty">오류: ' + e.message + '</td></tr>';
     }
 }
+
+async function createEvent() {
+    const name = document.getElementById('eventName').value.trim();
+    const totalSeats = parseInt(document.getElementById('totalSeats').value);
+
+    if (!name) {
+        alert('이벤트 이름을 입력하세요');
+        return;
+    }
+
+    if (isNaN(totalSeats) || totalSeats <= 0) {
+        alert('올바른 좌석 수를 입력하세요');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, totalSeats })
+        });
+
+        if (response.ok) {
+            document.getElementById('eventName').value = '';
+            document.getElementById('totalSeats').value = '100';
+            await loadEvents();
+            alert('이벤트 생성 완료!');
+        } else {
+            const errorText = await response.text();
+            alert('이벤트 생성 실패: ' + errorText);
+        }
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
+}
