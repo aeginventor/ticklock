@@ -32,6 +32,13 @@
 ./gradlew bootRun
 ```
 
+**웹 UI 접속**: http://localhost:8080
+
+웹 페이지에서 다음 기능을 사용할 수 있습니다:
+- 이벤트 생성 및 목록 조회
+- 6가지 락 전략으로 동시성 테스트
+- 실시간 결과 확인 (성공/실패 카운트, 소요 시간)
+
 ### 2. Docker 환경 (PostgreSQL + Redis)
 
 ```bash
@@ -39,11 +46,15 @@ docker-compose up -d
 ./gradlew bootRun --args='--spring.profiles.active=docker'
 ```
 
+**웹 UI 접속**: http://localhost:8080
+
 ### 3. 분산 환경 (서버 3대 + Nginx)
 
 ```bash
 docker-compose -f docker-compose-distributed.yml up -d
 ```
+
+**웹 UI 접속**: http://localhost (Nginx 로드밸런서)
 
 ---
 
@@ -51,6 +62,7 @@ docker-compose -f docker-compose-distributed.yml up -d
 
 | Method | URL | 설명 |
 |--------|-----|------|
+| GET | `/api/events` | 이벤트 전체 목록 조회 |
 | GET | `/api/events/{id}` | 이벤트 조회 |
 | POST | `/api/events` | 이벤트 생성 |
 | POST | `/api/events/{id}/purchase/no-lock` | 락 없음 (문제 발생) |
@@ -59,6 +71,17 @@ docker-compose -f docker-compose-distributed.yml up -d
 | POST | `/api/events/{id}/purchase/pessimistic` | DB 비관적 락 |
 | POST | `/api/events/{id}/purchase/optimistic` | DB 낙관적 락 |
 | POST | `/api/events/{id}/purchase/redis` | Redis 분산 락 |
+
+### 웹 UI 사용법
+
+1. **이벤트 생성**: 웹 페이지에서 이벤트 이름과 좌석 수를 입력하고 "생성" 버튼 클릭
+2. **이벤트 목록 확인**: 생성된 이벤트가 자동으로 표시됩니다
+3. **동시성 테스트**: 
+   - 이벤트 ID 선택
+   - 락 전략 선택 (No-Lock, synchronized, ReentrantLock, Pessimistic, Optimistic, Redis)
+   - 동시 요청 수 설정 (1~200)
+   - "테스트 실행" 버튼 클릭
+   - 결과 확인 (성공/실패 카운트, 소요 시간, 최종 잔여석)
 
 ### 사용 예시
 
@@ -201,6 +224,11 @@ src/main/kotlin/ticklock/
 │       ├── DeadlockProneService.kt
 │       └── DeadlockFreeService.kt
 └── TicklockApplication.kt
+
+src/main/resources/static/               # 정적 웹 UI
+├── index.html                            # 메인 페이지
+├── style.css                             # 스타일시트
+└── app.js                                 # JavaScript 로직
 ```
 
 ---
